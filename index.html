@@ -338,20 +338,20 @@
 <script>
     const DATA_SOURCES = {
         swh: { 
-            url: 'wave_data_swh_rose.json', // DISUNTIK: Menggunakan output backend swh v2 terbaru
+            url: 'data/wave_data_swh_rose.json', // DISUNTIK: Menggunakan output backend swh v2 terbaru
             label: 'SIG. WAVE HEIGHT', unit: 'm', short: 'SWH', desc: 'm (meters)', 
             color: '#00C2FF', fillTop: 'rgba(0, 194, 255, 0.4)', fillBottom: 'rgba(0, 194, 255, 0.0)',
             // 3D Config
             heightScale: 30000, offset: 50, cmap: 'YlGnBu'
         },
         mwp: { 
-            url: 'wave_data_mwp.json', label: 'MEAN WAVE PERIOD', unit: 's', short: 'MWP', desc: 's (seconds)', 
+            url: 'data/wave_data_mwp.json', label: 'MEAN WAVE PERIOD', unit: 's', short: 'MWP', desc: 's (seconds)', 
             color: '#D600FF', fillTop: 'rgba(214, 0, 255, 0.4)', fillBottom: 'rgba(214, 0, 255, 0.0)',
             // 3D Config
             heightScale: 10000, offset: 50, cmap: 'Viridis'
         },
         wind: { 
-            url: 'wind_data_images.json', label: 'WIND SPEED', unit: 'm/s', short: 'WIND', desc: 'm/s (meters/second)', 
+            url: 'data/wind_data_images.json', label: 'WIND SPEED', unit: 'm/s', short: 'WIND', desc: 'm/s (meters/second)', 
             color: '#FF9E00', fillTop: 'rgba(255, 158, 0, 0.4)', fillBottom: 'rgba(255, 158, 0, 0.0)',
             // 3D Config
             heightScale: 8000, offset: 50, cmap: 'Inferno'

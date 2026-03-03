@@ -338,7 +338,7 @@
 <script>
     const DATA_SOURCES = {
         temp: { 
-            url: 'data/temp_data.json', 
+            url: 'temp_data.json', 
             label: '2M TEMPERATURE', 
             unit: '°C', 
             short: 'TEMP', 
@@ -350,7 +350,7 @@
             heightScale: 80000, offset: 25, cmap: 'RdYlBu_r' 
         },
         precip: { 
-            url: 'data/precip_data.json', 
+            url: 'precip_data.json', 
             label: 'TOTAL PRECIPITATION', 
             unit: 'mm', 
             short: 'PRECIP', 
@@ -362,7 +362,7 @@
             heightScale: 80000, offset: 0, cmap: 'Blues' 
         },
         rad: { 
-            url: 'data/rad_data.json', 
+            url: 'rad_data.json', 
             label: 'SOLAR RADIATION', 
             unit: 'W/m²', 
             short: 'RAD', 
@@ -820,9 +820,21 @@
     function updateColorbarImage() {
         if (!gridJsonData) return;
         let path = "";
-        if (gridJsonData.metadata && gridJsonData.metadata.colorbar) { const cb = gridJsonData.metadata.colorbar; path = (typeof cb === 'object') ? cb[gridSubMode] : cb; } 
-        else if (gridJsonData.metadata.colorbar_paths) { path = gridJsonData.metadata.colorbar_paths[gridSubMode]; }
-        colorbarLegend.innerHTML = path ? `<img src="${path}" class="colorbar-img" alt="Legend">` : "";
+        if (gridJsonData.metadata && gridJsonData.metadata.colorbar) { 
+            const cb = gridJsonData.metadata.colorbar; 
+            path = (typeof cb === 'object') ? cb[gridSubMode] : cb; 
+        } 
+        else if (gridJsonData.metadata.colorbar_paths) { 
+            path = gridJsonData.metadata.colorbar_paths[gridSubMode]; 
+        }
+
+        // Perbaikan: Tambahkan 'frames/' dan ganti ke .webp
+        if (path) {
+            let finalPath = 'frames/' + path.replace('.png', '.webp');
+            colorbarLegend.innerHTML = `<img src="${finalPath}" class="colorbar-img" alt="Legend">`;
+        } else {
+            colorbarLegend.innerHTML = "";
+        }
     }
 
     // MODIFIKASI: Penambahan pemuatan Area Average Boxplot
@@ -899,7 +911,7 @@
             
             // SUNTIKAN: Load Boxplot data secara paralel jika belum ada
             if (!boxplotJsonData) {
-                const bRes = await fetch('data/boxplot_data_meteo.json');
+                const bRes = await fetch('boxplot_data_meteo.json');
                 if (bRes.ok) boxplotJsonData = await bRes.json();
             }
 
@@ -1047,7 +1059,8 @@
             if(currentVar === 'wind') mapPrefix = gridJsonData.metadata.paths.map[gridSubMode];
             else mapPrefix = gridJsonData.metadata.spatial_paths[gridSubMode];
             
-            spatialOverlay.setUrl(`${mapPrefix}${fileIdx}.png`); 
+            // Perbaikan: Tambahkan 'frames/' di depan path
+            spatialOverlay.setUrl(`frames/${mapPrefix}${fileIdx}.webp`); 
             spatialTimeLabel.textContent = `Spatial Time: ${label}`;
         }
     }

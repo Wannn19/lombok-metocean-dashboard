@@ -338,20 +338,20 @@
 <script>
     const DATA_SOURCES = {
         swh: { 
-            url: 'data/wave_data_swh_rose.json', // DISUNTIK: Menggunakan output backend swh v2 terbaru
+            url: 'wave_data_swh_rose.json', // DISUNTIK: Menggunakan output backend swh v2 terbaru
             label: 'SIG. WAVE HEIGHT', unit: 'm', short: 'SWH', desc: 'm (meters)', 
             color: '#00C2FF', fillTop: 'rgba(0, 194, 255, 0.4)', fillBottom: 'rgba(0, 194, 255, 0.0)',
             // 3D Config
             heightScale: 30000, offset: 50, cmap: 'YlGnBu'
         },
         mwp: { 
-            url: 'data/wave_data_mwp.json', label: 'MEAN WAVE PERIOD', unit: 's', short: 'MWP', desc: 's (seconds)', 
+            url: 'wave_data_mwp.json', label: 'MEAN WAVE PERIOD', unit: 's', short: 'MWP', desc: 's (seconds)', 
             color: '#D600FF', fillTop: 'rgba(214, 0, 255, 0.4)', fillBottom: 'rgba(214, 0, 255, 0.0)',
             // 3D Config
             heightScale: 10000, offset: 50, cmap: 'Viridis'
         },
         wind: { 
-            url: 'data/wind_data_images.json', label: 'WIND SPEED', unit: 'm/s', short: 'WIND', desc: 'm/s (meters/second)', 
+            url: 'wind_data_images.json', label: 'WIND SPEED', unit: 'm/s', short: 'WIND', desc: 'm/s (meters/second)', 
             color: '#FF9E00', fillTop: 'rgba(255, 158, 0, 0.4)', fillBottom: 'rgba(255, 158, 0, 0.0)',
             // 3D Config
             heightScale: 8000, offset: 50, cmap: 'Inferno'
@@ -791,27 +791,32 @@
     }
 
     function updateColorbarImage() {
-    if (!gridJsonData) return;
-    let path = "";
+        if (!gridJsonData) return;
+        let path = "";
+        
+        if (gridJsonData.metadata && gridJsonData.metadata.colorbar) { 
+            const cb = gridJsonData.metadata.colorbar; 
+            path = (typeof cb === 'object') ? cb[gridSubMode] : cb; 
+        } 
+        else if (gridJsonData.metadata.colorbar_paths) { 
+            path = gridJsonData.metadata.colorbar_paths[gridSubMode]; 
+        }
+
+        if (currentVar === 'wind' && path && !path.includes('/')) {
+            path = `frames_wind_final/map/${gridSubMode}/${path}`;
+        }
+
+        // Perbaikan: Tambahkan folder induk 'frames/' dan pastikan format .webp
+        if (path) {
+            // Jika path belum memiliki format .webp, kita ganti secara manual
+            let finalPath = 'frames/' + path.replace('.png', '.webp');
+            colorbarLegend.innerHTML = `<img src="${finalPath}" class="colorbar-img" alt="Legend">`;
+        } else {
+            colorbarLegend.innerHTML = "";
+        }
+    }
+
     
-    // Mengambil path dari metadata
-    if (gridJsonData.metadata && gridJsonData.metadata.colorbar) { 
-        const cb = gridJsonData.metadata.colorbar; 
-        path = (typeof cb === 'object') ? cb[gridSubMode] : cb; 
-    } 
-    else if (gridJsonData.metadata.colorbar_paths) { 
-        path = gridJsonData.metadata.colorbar_paths[gridSubMode]; 
-    }
-
-    // SUNTIKAN PERBAIKAN: Jika variabel adalah angin dan path-nya belum lengkap
-    if (currentVar === 'wind' && path && !path.includes('/')) {
-        // Kita arahkan ke subfolder yang sesuai (ts, clim, atau seas)
-        path = `frames_wind_final/map/${gridSubMode}/${path}`;
-    }
-
-    colorbarLegend.innerHTML = path ? `<img src="${path}" class="colorbar-img" alt="Legend">` : "";
-    }
-
     function loadAreaAverageData() {
         if (!gridJsonData || !gridJsonData.area_average) return;
 
@@ -887,7 +892,7 @@
             
             // SUNTIKAN: Load Boxplot data secara paralel
             if (!boxplotJsonData) {
-                const bRes = await fetch('data/boxplot_data_final.json');
+                const bRes = await fetch('boxplot_data_final.json');
                 if (bRes.ok) boxplotJsonData = await bRes.json();
             }
 
@@ -993,12 +998,13 @@
             let rosePath = "";
             const paths = gridJsonData.metadata.paths.rose;
             
+            // TAMBAHKAN 'frames/' di depan setiap path
             if (gridSubMode === 'ts') {
-                rosePath = `${paths.grid_ts}${r}_${c}.png`;
+                rosePath = `frames/${paths.grid_ts}${r}_${c}.webp`; 
             } else if (gridSubMode === 'clim') {
-                rosePath = `${paths.grid_clim}${r}_${c}_0.png`; 
+                rosePath = `frames/${paths.grid_clim}${r}_${c}_0.webp`; 
             } else if (gridSubMode === 'seas') {
-                rosePath = `${paths.grid_seas}${r}_${c}_0.png`; 
+                rosePath = `frames/${paths.grid_seas}${r}_${c}_0.webp`; 
             }
             roseImage.src = rosePath;
         }
@@ -1041,7 +1047,7 @@
             if (raf3D_Lock) cancelAnimationFrame(raf3D_Lock);
             raf3D_Lock = requestAnimationFrame(() => {
                 update3DLayer(fileIdx);
-
+                
                 if (currentVar === 'wind' || currentVar === 'swh') {
                     const paths = gridJsonData.metadata.paths.rose;
                     if (!is3DGridSelector) {
@@ -1049,16 +1055,20 @@
                         if (gridSubMode === 'ts') rosePrefix = paths.area_ts; 
                         else if (gridSubMode === 'clim') rosePrefix = paths.area_clim; 
                         else if (gridSubMode === 'seas') rosePrefix = paths.area_seas; 
-                        if (rosePrefix) roseImage.src = `${rosePrefix}${fileIdx}.png`; 
+                        
+                        if (rosePrefix) {
+                            // Pastikan menggunakan frames/ dan .webp
+                            roseImage.src = `frames/${rosePrefix}${fileIdx}.webp`; 
+                        }
                     } 
                     else if (currentGridRow !== -1) {
                         let rosePath = "";
                         if (gridSubMode === 'ts') {
-                            rosePath = `${paths.grid_ts}${currentGridRow}_${currentGridCol}.png`;
+                            rosePath = `frames/${paths.grid_ts}${currentGridRow}_${currentGridCol}.webp`;
                         } else if (gridSubMode === 'clim') {
-                            rosePath = `${paths.grid_clim}${currentGridRow}_${currentGridCol}_${fileIdx}.png`;
+                            rosePath = `frames/${paths.grid_clim}${currentGridRow}_${currentGridCol}_${fileIdx}.webp`;
                         } else if (gridSubMode === 'seas') {
-                            rosePath = `${paths.grid_seas}${currentGridRow}_${currentGridCol}_${fileIdx}.png`;
+                            rosePath = `frames/${paths.grid_seas}${currentGridRow}_${currentGridCol}_${fileIdx}.webp`;
                         }
                         roseImage.src = rosePath;
                     }
@@ -1069,25 +1079,26 @@
         }
 
         if (viewMode === 'grid') {
-             if ((currentVar === 'wind' || currentVar === 'swh') && currentGridRow !== -1) {
+            if ((currentVar === 'wind' || currentVar === 'swh') && currentGridRow !== -1) {
                 let rosePath = "";
                 const paths = gridJsonData.metadata.paths.rose;
                 if (gridSubMode === 'clim') {
-                    rosePath = `${paths.grid_clim}${currentGridRow}_${currentGridCol}_${fileIdx}.png`;
+                    rosePath = `frames/${paths.grid_clim}${currentGridRow}_${currentGridCol}_${fileIdx}.webp`;
                     roseImage.src = rosePath;
                 } else if (gridSubMode === 'seas') {
-                    rosePath = `${paths.grid_seas}${currentGridRow}_${currentGridCol}_${fileIdx}.png`;
+                    rosePath = `frames/${paths.grid_seas}${currentGridRow}_${currentGridCol}_${fileIdx}.webp`;
                     roseImage.src = rosePath;
                 } else if (gridSubMode === 'ts') {
-                    rosePath = `${paths.grid_ts}${currentGridRow}_${currentGridCol}.png`;
+                    rosePath = `frames/${paths.grid_ts}${currentGridRow}_${currentGridCol}.webp`;
                     roseImage.src = rosePath;
                 }
-             }
-             return;
+            }
+            return;
         }
 
         if (viewMode === 'spatial') {
-            spatialOverlay.setUrl(`${mapPrefix}${fileIdx}.png`); 
+            // Perbaikan: Tambahkan 'frames/' di depan mapPrefix
+            spatialOverlay.setUrl(`frames/${mapPrefix}${fileIdx}.webp`); 
             spatialTimeLabel.textContent = `Spatial Time: ${label}`;
             
             if(currentVar === 'wind' || currentVar === 'swh') { 
@@ -1096,7 +1107,8 @@
                 if (gridSubMode === 'ts') rosePrefix = paths.area_ts; 
                 else if (gridSubMode === 'clim') rosePrefix = paths.area_clim; 
                 else if (gridSubMode === 'seas') rosePrefix = paths.area_seas; 
-                roseImage.src = `${rosePrefix}${fileIdx}.png`; 
+                // Perbaikan: Tambahkan 'frames/'
+                roseImage.src = `frames/${rosePrefix}${fileIdx}.webp`; 
             }
         }
     }
